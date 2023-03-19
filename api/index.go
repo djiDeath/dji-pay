@@ -47,7 +47,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	server.GET("/users", func(context *Context) {
-		getUsers(context.Writer, context.Req, collection)
+		getUsers(context.Writer, context.Req, collection, context)
 	})
 	server.POST("/users", func(context *Context) {
 		createUser(context.Writer, context.Req, collection)
@@ -86,7 +86,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	server.Handle(w, r)
 }
 
-func getUsers(w http.ResponseWriter, r *http.Request, collection *mongo.Collection) {
+func getUsers(w http.ResponseWriter, r *http.Request, collection *mongo.Collection, c *Context) {
 	// Find all users
 	cursor, err := collection.Find(context.Background(), bson.M{})
 	if err != nil {
@@ -113,8 +113,11 @@ func getUsers(w http.ResponseWriter, r *http.Request, collection *mongo.Collecti
 		http.Error(w, "Failed to encode users", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonBytes)
+	c.JSON(200, H{
+		"data": H{
+			"url": jsonBytes,
+		},
+	})
 }
 
 func createUser(w http.ResponseWriter, r *http.Request, collection *mongo.Collection) {
