@@ -46,15 +46,44 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 
-	server.GET("/users", func(context *Context) {
-		getUsers(context.Writer, context.Req, collection, context)
+	server.GET("/users", func(c *Context) {
+		// Find all users
+		cursor, err := collection.Find(context.Background(), bson.M{})
+		if err != nil {
+			http.Error(w, "Failed to get users", http.StatusInternalServerError)
+			return
+		}
+		defer cursor.Close(context.Background())
+
+		// Convert cursor to []User
+		var users []User
+		for cursor.Next(context.Background()) {
+			var user User
+			err = cursor.Decode(&user)
+			if err != nil {
+				http.Error(w, "Failed to decode user", http.StatusInternalServerError)
+				return
+			}
+			users = append(users, user)
+		}
+
+		// Convert []User to JSON and write to response
+		jsonBytes, err := json.Marshal(users)
+
+		fmt.Println(jsonBytes)
+
+		if err != nil {
+			http.Error(w, "Failed to encode users", http.StatusInternalServerError)
+			return
+		}
+		c.JSON(200, H{
+			"data": H{
+				"url": jsonBytes,
+			},
+		})
 	})
 	server.POST("/users", func(context *Context) {
 		createUser(context.Writer, context.Req, collection)
-	})
-
-	server.GET("/users", func(context *Context) {
-
 	})
 
 	server.GET("/hello", func(context *Context) {
@@ -84,46 +113,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 	server.Handle(w, r)
-}
-
-func getUsers(w http.ResponseWriter, r *http.Request, collection *mongo.Collection, c *Context) {
-	// Find all users
-	cursor, err := collection.Find(context.Background(), bson.M{})
-	if err != nil {
-		http.Error(w, "Failed to get users", http.StatusInternalServerError)
-		return
-	}
-	defer cursor.Close(context.Background())
-
-	// Convert cursor to []User
-	var users []User
-	for cursor.Next(context.Background()) {
-		var user User
-		err = cursor.Decode(&user)
-		if err != nil {
-			http.Error(w, "Failed to decode user", http.StatusInternalServerError)
-			return
-		}
-		users = append(users, user)
-	}
-
-	// Convert []User to JSON and write to response
-	jsonBytes, err := json.Marshal(users)
-
-	fmt.Println(jsonBytes)
-
-	if err != nil {
-		http.Error(w, "Failed to encode users", http.StatusInternalServerError)
-		return
-	}
-	c.JSON(200, H{
-		"message": "hello go from vercel !!!!",
-	})
-	c.JSON(200, H{
-		"data": H{
-			"url": jsonBytes,
-		},
-	})
 }
 
 func createUser(w http.ResponseWriter, r *http.Request, collection *mongo.Collection) {
