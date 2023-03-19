@@ -109,10 +109,16 @@ func getUsers(w http.ResponseWriter, r *http.Request, collection *mongo.Collecti
 
 	// Convert []User to JSON and write to response
 	jsonBytes, err := json.Marshal(users)
+
+	fmt.Println(jsonBytes)
+
 	if err != nil {
 		http.Error(w, "Failed to encode users", http.StatusInternalServerError)
 		return
 	}
+	c.JSON(200, H{
+		"message": "hello go from vercel !!!!",
+	})
 	c.JSON(200, H{
 		"data": H{
 			"url": jsonBytes,
